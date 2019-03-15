@@ -23,7 +23,9 @@
 
 // clang-format off
 
-#include "pmacc/math/complex/Complex.hpp"
-#include "pmacc/math/complex/Bessel.hpp"
+#if !defined(SPEC)
+#   include "pmacc/math/complex/Complex.hpp"
+#   include "pmacc/math/complex/Bessel.hpp"
+#endif
 
 // clang-format on

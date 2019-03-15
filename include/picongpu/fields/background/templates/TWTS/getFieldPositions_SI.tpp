@@ -20,7 +20,9 @@
 
 #pragma once
 
-#include "picongpu/fields/background/templates/TWTS/numComponents.hpp"
+#if !defined(SPEC)
+#   include "picongpu/fields/background/templates/TWTS/numComponents.hpp"
+#endif
 
 #include <pmacc/dimensions/DataSpace.hpp>
 #include <pmacc/math/Vector.hpp>

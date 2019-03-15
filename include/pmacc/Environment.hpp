@@ -30,7 +30,9 @@
 #include "pmacc/eventSystem/EventSystem.hpp"
 #include "pmacc/eventSystem/events/EventPool.hpp"
 #include "pmacc/eventSystem/streams/StreamController.hpp"
-#include "pmacc/mappings/simulation/Filesystem.hpp"
+#if !defined(SPEC)
+#   include "pmacc/mappings/simulation/Filesystem.hpp"
+#endif
 #include "pmacc/mappings/simulation/GridController.hpp"
 #include "pmacc/mappings/simulation/SubGrid.hpp"
 #include "pmacc/particles/tasks/ParticleFactory.hpp"
@@ -319,6 +321,7 @@ namespace pmacc
             return pmacc::SubGrid<T_dim>::getInstance();
         }
 
+#if !defined(SPEC)
         /** get the singleton Filesystem
          *
          * @return instance of Filesystem
@@ -327,6 +330,7 @@ namespace pmacc
         {
             return pmacc::Filesystem<T_dim>::getInstance();
         }
+#endif
 
         /** get the singleton Environment< DIM >
          *
@@ -357,7 +361,9 @@ namespace pmacc
 
             EnvironmentController();
 
+#if !defined(SPEC)
             Filesystem();
+#endif
 
             detail::EnvironmentContext::getInstance().setDevice(static_cast<int>(GridController().getHostRank()));
 

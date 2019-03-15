@@ -19,7 +19,9 @@
 
 #pragma once
 
-#include <boost/filesystem.hpp>
+#if !defined(SPEC)
+#   include <boost/filesystem.hpp>
+#endif
 
 #include <fstream>
 #include <iostream>
@@ -28,7 +30,9 @@
 
 namespace picongpu
 {
+#if !defined(SPEC)
     using namespace boost::filesystem;
+#endif
 
     /** Restore a txt file from the checkpoint dir
      *
@@ -49,6 +53,7 @@ namespace picongpu
         uint32_t restartStep,
         const std::string restartDirectory)
     {
+#if !defined(SPEC)
         /* get restart time step as string */
         std::stringstream sStep;
         sStep << restartStep;
@@ -82,6 +87,9 @@ namespace picongpu
             }
             return true;
         }
+#else
+        return true;
+#endif
     }
 
     /** Checkpoints a txt file
@@ -99,6 +107,7 @@ namespace picongpu
         uint32_t currentStep,
         const std::string checkpointDirectory)
     {
+#if !defined(SPEC)
         outFile.flush();
 
         std::stringstream sStep;
@@ -108,6 +117,7 @@ namespace picongpu
         path dst(checkpointDirectory + std::string("/") + filename + std::string(".") + sStep.str());
 
         copy_file(src, dst, copy_option::overwrite_if_exists);
+#endif
     }
 
 } /* namespace picongpu */

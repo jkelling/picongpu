@@ -20,6 +20,8 @@
 
 #pragma once
 
+#if !defined(SPEC)
 /** Load pre-defined templates (implementation) */
 #include "picongpu/fields/background/templates/TWTS/TWTS.tpp"
 #include "picongpu/fields/background/templates/twtsfast/twtsfast.tpp"
+#endif

@@ -30,13 +30,17 @@
 #include <pmacc/math/MapTuple.hpp>
 #include <pmacc/particles/meta/FindByNameOrType.hpp>
 #include <pmacc/traits/HasFlag.hpp>
+#if !defined(SPEC)
 #if(PMACC_CUDA_ENABLED == 1)
 #    include "picongpu/particles/bremsstrahlung/Bremsstrahlung.hpp"
 #endif
+#endif
 #include "picongpu/particles/creation/creation.hpp"
 #include "picongpu/particles/flylite/IFlyLite.hpp"
+#if !defined(SPEC)
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
 #include "picongpu/particles/traits/GetPhotonCreator.hpp"
+#endif
 
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/ResolveAliasFromSpecies.hpp>
@@ -349,6 +353,7 @@ namespace picongpu
             }
         };
 
+#if !defined(SPEC)
 #if(PMACC_CUDA_ENABLED == 1)
 
         /** Handles the bremsstrahlung effect for electrons on ions.
@@ -455,6 +460,7 @@ namespace picongpu
                 creation::createParticlesFromSpecies(*electronSpeciesPtr, *photonSpeciesPtr, photonCreator, cellDesc);
             }
         };
+#endif
 
     } // namespace particles
 } // namespace picongpu

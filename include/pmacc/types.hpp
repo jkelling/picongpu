@@ -61,10 +61,15 @@
 
 #include <cupla.hpp>
 
+#if !defined(SPEC)
+#   include <boost/filesystem.hpp>
+#endif
 
 namespace pmacc
 {
     namespace bmpl = boost::mpl;
+#if !defined(SPEC)
     namespace bfs = boost::filesystem;
+#endif
 
 } // namespace pmacc

@@ -40,7 +40,9 @@
 #include "picongpu/random/seed/ISeed.hpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
 #include "picongpu/simulation/control/MovingWindow.hpp"
+#if !defined(SPEC)
 #include "picongpu/simulation/stage/Bremsstrahlung.hpp"
+#endif
 #include "picongpu/simulation/stage/Collision.hpp"
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
 #include "picongpu/simulation/stage/CurrentDeposition.hpp"
@@ -50,10 +52,14 @@
 #include "picongpu/simulation/stage/FieldBackground.hpp"
 #include "picongpu/simulation/stage/IterationStart.hpp"
 #include "picongpu/simulation/stage/MomentumBackup.hpp"
+#if !defined(SPEC)
 #include "picongpu/simulation/stage/ParticleIonization.hpp"
+#endif
 #include "picongpu/simulation/stage/ParticlePush.hpp"
+#if !defined(SPEC)
 #include "picongpu/simulation/stage/PopulationKinetics.hpp"
 #include "picongpu/simulation/stage/SynchrotronRadiation.hpp"
+#endif
 #include "picongpu/versionFormat.hpp"
 
 #include <pmacc/assert.hpp>
@@ -77,6 +83,7 @@
 #include <string>
 #include <vector>
 
+#if !defined(SPEC)
 #if(PMACC_CUDA_ENABLED == 1)
 #    include "picongpu/particles/bremsstrahlung/PhotonEmissionAngle.hpp"
 #    include "picongpu/particles/bremsstrahlung/ScaledSpectrum.hpp"
@@ -85,6 +92,7 @@
 #include "picongpu/particles/InitFunctors.hpp"
 #include "picongpu/particles/ParticlesFunctors.hpp"
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
+#endif
 
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
 #include <pmacc/meta/ForEach.hpp>
@@ -327,6 +335,11 @@ namespace picongpu
             // this may include allocation of additional fields so has to be done before particles
             fieldBackground.init(*cellDescription);
 
+/* The random number generator is not used within the SPEC benchmarks.
+ * To keep the initialization enabled would result into a longer initialization than the
+ * benchmark itself on GPUs.
+ */
+#if !defined(SPEC)
             // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung
             // Photons
             using AllSynchrotronPhotonsSpecies =
@@ -355,7 +368,9 @@ namespace picongpu
             {
                 this->synchrotronFunctions.init();
             }
-#if(PMACC_CUDA_ENABLED == 1)
+#endif
+
+#if(PMACC_CUDA_ENABLED == 1) && !defined(SPEC)
             // Initialize bremsstrahlung lookup tables, if there are species containing bremsstrahlung photons
             if(!bmpl::empty<AllBremsstrahlungPhotonsSpecies>::value)
             {
@@ -379,6 +394,7 @@ namespace picongpu
             cuplaStreamSynchronize(0);
 #endif
 
+#if !defined(SPEC)
             /* Allocate helper fields for FLYlite population kinetics for atomic physics
              * (histograms, rate matrix, etc.)
              */
@@ -388,11 +404,13 @@ namespace picongpu
             meta::ForEach<AllFlyLiteIons, particles::CallPopulationKineticsInit<bmpl::_1>, bmpl::_1>
                 initPopulationKinetics;
             initPopulationKinetics(gridSizeLocal);
+#endif
 
             // Allocate and initialize particle species with all left-over memory below
             meta::ForEach<VectorAllSpecies, particles::CreateSpecies<bmpl::_1>> createSpeciesMemory;
             createSpeciesMemory(deviceHeap, cellDescription);
 
+#if(PMACC_CUDA_ENABLED == 1)
             size_t freeGpuMem = freeDeviceMemory();
             if(freeGpuMem < reservedGpuMemorySize)
             {
@@ -431,13 +449,16 @@ namespace picongpu
             dc.consume(std::move(mallocMCBuffer));
 
 #endif
+#endif
 
             meta::ForEach<VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1>>
                 logMemoryStatisticsForSpecies;
             logMemoryStatisticsForSpecies(deviceHeap);
 
+#if(PMACC_CUDA_ENABLED == 1)
             freeGpuMem = freeDeviceMemory();
             log<picLog::MEMORY>("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
+#endif
 
             IdProvider<simDim>::init();
 
@@ -534,11 +555,13 @@ namespace picongpu
             MomentumBackup{}(currentStep);
             CurrentReset{}(currentStep);
             Collision{deviceHeap}(currentStep);
+#if !defined(SPEC)
             ParticleIonization{*cellDescription}(currentStep);
             PopulationKinetics{}(currentStep);
             SynchrotronRadiation{*cellDescription, synchrotronFunctions}(currentStep);
 #if(PMACC_CUDA_ENABLED == 1)
             Bremsstrahlung{*cellDescription, scaledBremsstrahlungSpectrumMap, bremsstrahlungPhotonAngle}(currentStep);
+#endif
 #endif
             EventTask commEvent;
             ParticlePush{}(currentStep, commEvent);
@@ -626,6 +649,7 @@ namespace picongpu
         // Because of it, has a special init() method that has to be called during initialization of the simulation
         simulation::stage::FieldBackground fieldBackground;
 
+#if !defined(SPEC)
 #if(PMACC_CUDA_ENABLED == 1)
         // creates lookup tables for the bremsstrahlung effect
         // map<atomic number, scaled bremsstrahlung spectrum>
@@ -635,6 +659,7 @@ namespace picongpu
 
         // Synchrotron functions (used in synchrotronPhotons module)
         particles::synchrotronPhotons::SynchrotronFunctions synchrotronFunctions;
+#endif
 
         // output classes
 
@@ -693,11 +718,13 @@ namespace picongpu
             dataConnector.consume(std::move(fieldE));
             auto fieldJ = std::make_unique<FieldJ>(*cellDescription);
             dataConnector.consume(std::move(fieldJ));
+#if !defined(SPEC)
             for(uint32_t slot = 0; slot < fieldTmpNumSlots; ++slot)
             {
                 auto fieldTmp = std::make_unique<FieldTmp>(*cellDescription, slot);
                 dataConnector.consume(std::move(fieldTmp));
             }
+#endif
         }
 
         /** Reset all fields
@@ -734,9 +761,11 @@ namespace picongpu
 } /* namespace picongpu */
 
 #include "picongpu/fields/Fields.tpp"
+#if !defined(SPEC)
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
 
 #if(PMACC_CUDA_ENABLED == 1)
 #    include "picongpu/particles/bremsstrahlung/Bremsstrahlung.tpp"
 #    include "picongpu/particles/bremsstrahlung/ScaledSpectrum.tpp"
+#endif
 #endif

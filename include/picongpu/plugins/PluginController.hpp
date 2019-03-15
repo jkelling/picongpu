@@ -30,20 +30,25 @@
 #include "picongpu/plugins/EnergyFields.hpp"
 #include "picongpu/plugins/EnergyParticles.hpp"
 #include "picongpu/plugins/SumCurrents.hpp"
-#include "picongpu/plugins/multi/Master.hpp"
+#include "picongpu/plugins/BinEnergyParticles.hpp"
+#include "picongpu/plugins/Emittance.hpp"
+#if !defined(SPEC)
 #include "picongpu/plugins/output/images/PngCreator.hpp"
 #include "picongpu/plugins/output/images/Visualisation.hpp"
 #include "picongpu/plugins/transitionRadiation/TransitionRadiation.hpp"
+#endif
 
 #include <pmacc/assert.hpp>
+#if !defined(SPEC)
 /* That's an abstract plugin for image output with the possibility
  * to store the image as png file or send it via a sockets to a server.
  *
  * \todo rename PngPlugin to ImagePlugin or similar
  */
-#include "picongpu/plugins/PngPlugin.hpp"
+#   include "picongpu/plugins/PngPlugin.hpp"
+#endif
 
-#if(ENABLE_ADIOS == 1)
+#if(ENABLE_ADIOS == 1) && !defined(SPEC)
 #    include "picongpu/plugins/adios/ADIOSWriter.hpp"
 #endif
 
@@ -53,7 +58,7 @@
 #    include "picongpu/plugins/xrayScattering/XrayScattering.hpp"
 #endif
 
-#if(PMACC_CUDA_ENABLED == 1)
+#if(PMACC_CUDA_ENABLED == 1) && !defined(SPEC)
 #    include "picongpu/plugins/ChargeConservation.hpp"
 #    include "picongpu/plugins/PositionsParticles.hpp"
 #    include "picongpu/plugins/particleMerging/ParticleMerger.hpp"
@@ -68,21 +73,25 @@
 #    endif
 #endif
 
-#if(ENABLE_ISAAC == 1) && (SIMDIM == DIM3)
+#if(ENABLE_ISAAC == 1) && (SIMDIM == DIM3) && !defined(SPEC)
 #    include "picongpu/plugins/IsaacPlugin.hpp"
 #endif
 
-#if(ENABLE_HDF5 == 1)
+#if(ENABLE_HDF5 == 1) && !defined(SPEC)
 #    include "picongpu/plugins/particleCalorimeter/ParticleCalorimeter.hpp"
 #    include "picongpu/plugins/radiation/Radiation.hpp"
 #    include "picongpu/plugins/radiation/VectorTypes.hpp"
 #endif
 
 #include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
-#include "picongpu/plugins/Checkpoint.hpp"
+#if !defined(SPEC)
+#   include "picongpu/plugins/Checkpoint.hpp"
+#endif
 #include "picongpu/plugins/ILightweightPlugin.hpp"
 #include "picongpu/plugins/ISimulationPlugin.hpp"
-#include "picongpu/plugins/ResourceLog.hpp"
+#if !defined(SPEC)
+#   include "picongpu/plugins/ResourceLog.hpp"
+#endif
 
 #include <pmacc/mappings/kernel/MappingDescription.hpp>
 
@@ -149,9 +158,11 @@ namespace picongpu
 
         /* define stand alone plugins */
         using StandAlonePlugins = bmpl::vector<
+#if !defined(SPEC)
             Checkpoint,
+#endif
             EnergyFields
-#if(ENABLE_ADIOS == 1)
+#if(ENABLE_ADIOS == 1) && !defined(SPEC)
             ,
             plugins::multi::Master<adios::ADIOSWriter>
 #endif
@@ -161,7 +172,7 @@ namespace picongpu
             plugins::multi::Master<openPMD::openPMDWriter>
 #endif
 
-#if(PMACC_CUDA_ENABLED == 1)
+#if(PMACC_CUDA_ENABLED == 1) && !defined(SPEC)
             ,
             SumCurrents,
             ChargeConservation
@@ -171,17 +182,20 @@ namespace picongpu
 #    endif
 #endif
 
-#if(ENABLE_ISAAC == 1) && (SIMDIM == DIM3)
+#if(ENABLE_ISAAC == 1) && (SIMDIM == DIM3) && !defined(SPEC)
             ,
             isaacP::IsaacPlugin
 #endif
-            ,
-            ResourceLog>;
+
+#if !defined(SPEC)
+        , ResourceLog
+#endif
+    >;
 
 
         /* define field plugins */
         using UnspecializedFieldPlugins = bmpl::vector<
-#if(PMACC_CUDA_ENABLED == 1)
+#if(PMACC_CUDA_ENABLED == 1) && !defined(SPEC)
             SliceFieldPrinterMulti<bmpl::_1>
 #endif
             >;
@@ -200,14 +214,16 @@ namespace picongpu
             plugins::multi::Master<EnergyParticles<bmpl::_1>>,
             plugins::multi::Master<CalcEmittance<bmpl::_1>>,
             plugins::multi::Master<BinEnergyParticles<bmpl::_1>>,
-            CountParticles<bmpl::_1>,
-            PngPlugin<Visualisation<bmpl::_1, PngCreator>>,
+            CountParticles<bmpl::_1>
+#if !defined(SPEC)
+            , PngPlugin<Visualisation<bmpl::_1, PngCreator>>,
             plugins::transitionRadiation::TransitionRadiation<bmpl::_1>
+#endif
 #if(ENABLE_OPENPMD == 1)
             ,
             plugins::xrayScattering::XrayScattering<bmpl::_1>
 #endif
-#if(ENABLE_HDF5 == 1)
+#if(ENABLE_HDF5 == 1) && !defined(SPEC)
             ,
             plugins::radiation::Radiation<bmpl::_1>,
             plugins::multi::Master<ParticleCalorimeter<bmpl::_1>>
@@ -216,7 +232,7 @@ namespace picongpu
             ,
             plugins::multi::Master<PhaseSpace<particles::shapes::Counter::ChargeAssignment, bmpl::_1>>
 #endif
-#if(PMACC_CUDA_ENABLED == 1)
+#if(PMACC_CUDA_ENABLED == 1) && !defined(SPEC)
             ,
             PositionsParticles<bmpl::_1>,
             plugins::particleMerging::ParticleMerger<bmpl::_1>,

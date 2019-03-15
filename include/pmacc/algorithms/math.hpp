@@ -22,7 +22,9 @@
 #pragma once
 
 #include "pmacc/algorithms/math/defines/abs.hpp"
-#include "pmacc/algorithms/math/defines/bessel.hpp"
+#if !defined(SPEC)
+#   include "pmacc/algorithms/math/defines/bessel.hpp"
+#endif
 #include "pmacc/algorithms/math/defines/comparison.hpp"
 #include "pmacc/algorithms/math/defines/cross.hpp"
 #include "pmacc/algorithms/math/defines/dot.hpp"

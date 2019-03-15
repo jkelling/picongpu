@@ -34,8 +34,10 @@
 #include "pmacc/simulationControl/signal.hpp"
 #include "pmacc/types.hpp"
 
+#if !defined(SPEC)
 #include <boost/filesystem.hpp>
-
+#endif
+ 
 #include <csignal>
 #include <fstream>
 #include <iomanip>
@@ -162,11 +164,13 @@ namespace pmacc
                  * time for checkpointing if some ranks died */
                 MPI_CHECK(MPI_Barrier(gc.getCommunicator().getMPIComm()));
 
+#if !defined(SPEC)
                 /* create directory containing checkpoints  */
                 if(numCheckpoints == 0)
                 {
                     Environment<DIM>::get().Filesystem().createDirectoryWithPermissions(checkpointDirectory);
                 }
+#endif
 
                 Environment<DIM>::get().PluginConnector().checkpointPlugins(currentStep, checkpointDirectory);
 
@@ -544,6 +548,7 @@ namespace pmacc
         {
             std::vector<uint32_t> checkpoints;
 
+#if !defined(SPEC)
             const std::string checkpointMasterFile
                 = this->restartDirectory + std::string("/") + this->CHECKPOINT_MASTER_FILE;
 
@@ -567,6 +572,7 @@ namespace pmacc
                     std::cerr << "Warning: checkpoint master file contains invalid data (" << line << ")" << std::endl;
                 }
             }
+#endif
 
             return checkpoints;
         }

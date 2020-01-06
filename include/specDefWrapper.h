@@ -2,7 +2,7 @@
 
 // this test is to not break pic-build or cmake builds
 #ifndef CMAKE_VERSION
-    #define CMAKE_VERSION=NO_CMAKE_IN_SPEC
+    #define CMAKE_VERSION = NO_CMAKE_IN_SPEC
     #ifdef SPEC_CUDA
         #define CUPLA_STREAM_ASYNC_ENABLED 1
         #define ALPAKA_ACC_GPU_CUDA_ENABLED

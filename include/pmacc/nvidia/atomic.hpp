@@ -159,6 +159,8 @@ T atomicAllInc(T *ptr)
 {
 #ifdef __CUDA_ARCH__
     return atomicAllInc(alpaka::atomic::AtomicUniformCudaHipBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
+#elif defined( ALPAKA_ACC_CPU_BT_OMP4_ENABLED )
+    return atomicAllInc(alpaka::atomic::AtomicOmpBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
 #else
     // assume that we can use the standard library atomics if we are not on gpu
     return atomicAllInc(alpaka::atomic::AtomicStdLibLock<16>(), ptr, ::alpaka::hierarchy::Grids());

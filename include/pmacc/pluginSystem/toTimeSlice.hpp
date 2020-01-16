@@ -69,6 +69,13 @@ namespace detail
             str,
             ","
         );
+#ifdef __ibmxl_vrm__
+        // volatile // XL 16.1.1-5 tends to optimize this function to return an empty list
+        std::cout << "\ttoTimeSlice\tstr=\t'" << str << "'\tseqTimeSlices=\t";
+        for(const auto &a : seqOfSlices)
+            std::cout << "'" << a << "',";
+        std::cout << '\n';
+#endif
         for( auto const & slice : seqOfSlices )
         {
             auto const sliceComponents = misc::splitString(

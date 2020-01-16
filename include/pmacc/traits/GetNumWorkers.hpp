@@ -85,5 +85,18 @@ namespace traits
         static constexpr uint32_t value = 1u;
     };
 #endif
+#if( ALPAKA_ACC_CPU_BT_OMP4_ENABLED == 1 ) && defined ALPAKA_OFFLOAD_MAX_BLOCK_SIZE && ALPAKA_OFFLOAD_MAX_BLOCK_SIZE>0
+    template<
+        uint32_t T_maxWorkers,
+        typename ... T_Args
+    >
+    struct GetNumWorkers<
+        T_maxWorkers,
+        alpaka::acc::AccCpuOmp4< T_Args... >
+    >
+    {
+        static constexpr uint32_t value = ALPAKA_OFFLOAD_MAX_BLOCK_SIZE;
+    };
+#endif
 } // namespace traits
 } // namespace pmacc

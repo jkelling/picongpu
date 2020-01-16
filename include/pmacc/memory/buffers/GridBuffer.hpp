@@ -51,6 +51,11 @@ namespace pmacc
                 bool isUniqu = tags.find(tag) == tags.end();
                 if(isUniqu)
                     tags.insert(tag);
+#ifdef __ibmxl_vrm__
+                // volatile // XL 16.1.1-5 tends to optimize this function to return false
+                std::cout << "XLnoOpt: UniquTag_instance\t" << this << '\t';
+                std::cout << "\tUniquTag\tgot tag\t" << tag << std::endl;
+#endif
                 return isUniqu;
             }
 

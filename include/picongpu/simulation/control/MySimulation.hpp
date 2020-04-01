@@ -59,17 +59,21 @@
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
-#include "picongpu/simulation/stage/Bremsstrahlung.hpp"
+#if !defined(SPEC)
+#   include "picongpu/simulation/stage/Bremsstrahlung.hpp"
+#endif
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
 #include "picongpu/simulation/stage/CurrentDeposition.hpp"
 #include "picongpu/simulation/stage/CurrentInterpolationAndAdditionToEMF.hpp"
 #include "picongpu/simulation/stage/CurrentReset.hpp"
 #include "picongpu/simulation/stage/FieldBackground.hpp"
 #include "picongpu/simulation/stage/MomentumBackup.hpp"
-#include "picongpu/simulation/stage/ParticleIonization.hpp"
 #include "picongpu/simulation/stage/ParticlePush.hpp"
-#include "picongpu/simulation/stage/PopulationKinetics.hpp"
-#include "picongpu/simulation/stage/SynchrotronRadiation.hpp"
+#if !defined(SPEC)
+# include "picongpu/simulation/stage/ParticleIonization.hpp"
+#   include "picongpu/simulation/stage/PopulationKinetics.hpp"
+#   include "picongpu/simulation/stage/SynchrotronRadiation.hpp"
+#endif
 #include <pmacc/random/methods/methods.hpp>
 #include <pmacc/random/RNGProvider.hpp>
 
@@ -326,6 +330,7 @@ public:
         // create field solver
         this->myFieldSolver = new fields::Solver(*cellDescription);
 
+#if !defined(SPEC)
         // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung Photons
         using AllSynchrotronPhotonsSpecies = typename pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
@@ -335,6 +340,7 @@ public:
             VectorAllSpecies,
             bremsstrahlungPhotons<>
         >::type;
+#endif
 
 /* The random number generator is not used within the SPEC benchmarks.
  * To keep the initialization enabled would result into a longer initialization than the
@@ -362,14 +368,16 @@ public:
         pmacc::GridController<simDim>& gridCon = pmacc::Environment<simDim>::get().GridController();
         rngFactory->init( gridCon.getScalarPosition() ^ seed );
         dc.consume( std::move( rngFactory ) );
-#endif
 
         // Initialize synchrotron functions, if there are synchrotron photon species
         if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
         {
             this->synchrotronFunctions.init();
         }
+#endif
+
 #if( PMACC_CUDA_ENABLED == 1 )
+#   if !defined(SPEC)
         // Initialize bremsstrahlung lookup tables, if there are species containing bremsstrahlung photons
         if(!bmpl::empty<AllBremsstrahlungPhotonsSpecies>::value)
         {
@@ -381,6 +389,7 @@ public:
 
             this->bremsstrahlungPhotonAngle.init();
         }
+#   endif
 #endif
 
 #if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
@@ -401,6 +410,7 @@ public:
         cuplaStreamSynchronize( 0 );
 #endif
 
+#if !defined(SPEC)
         /* Allocate helper fields for FLYlite population kinetics for atomic physics
          * (histograms, rate matrix, etc.)
          */
@@ -417,7 +427,7 @@ public:
         initPopulationKinetics(
             gridSizeLocal
         );
-
+#endif
         // Allocate and initialize particle species with all left-over memory below
         meta::ForEach< VectorAllSpecies, particles::CreateSpecies<bmpl::_1> > createSpeciesMemory;
         createSpeciesMemory( deviceHeap, cellDescription );
@@ -562,19 +572,24 @@ public:
     {
         using namespace simulation::stage;
         MomentumBackup{ }( currentStep );
+<<<<<<< HEAD
         CurrentReset{ }( currentStep );
+=======
+#if !defined(SPEC)
+>>>>>>> disable more plugins when SPEC is used
         ParticleIonization{ *cellDescription }( currentStep );
         PopulationKinetics{ }( currentStep );
         SynchrotronRadiation{
             *cellDescription,
             synchrotronFunctions
         }( currentStep );
-#if( PMACC_CUDA_ENABLED == 1 )
+#   if( PMACC_CUDA_ENABLED == 1 )
         Bremsstrahlung{
             *cellDescription,
             scaledBremsstrahlungSpectrumMap,
             bremsstrahlungPhotonAngle
         }( currentStep );
+#   endif
 #endif
         EventTask commEvent;
         ParticlePush{ }( currentStep, commEvent );
@@ -659,16 +674,18 @@ protected:
     std::shared_ptr<DeviceHeap> deviceHeap;
 
     fields::Solver* myFieldSolver;
-
-#if( PMACC_CUDA_ENABLED == 1 )
+#if !defined(SPEC)
+#   if( PMACC_CUDA_ENABLED == 1 )
     // creates lookup tables for the bremsstrahlung effect
     // map<atomic number, scaled bremsstrahlung spectrum>
     std::map<float_X, particles::bremsstrahlung::ScaledSpectrum> scaledBremsstrahlungSpectrumMap;
     particles::bremsstrahlung::GetPhotonAngle bremsstrahlungPhotonAngle;
-#endif
+#   endif
 
     // Synchrotron functions (used in synchrotronPhotons module)
     particles::synchrotronPhotons::SynchrotronFunctions synchrotronFunctions;
+
+#endif
 
     // output classes
 

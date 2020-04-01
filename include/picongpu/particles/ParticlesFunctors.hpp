@@ -30,11 +30,13 @@
 #include <pmacc/particles/meta/FindByNameOrType.hpp>
 
 #include "picongpu/particles/traits/GetIonizerList.hpp"
-#if( PMACC_CUDA_ENABLED == 1 )
-#   include "picongpu/particles/bremsstrahlung/Bremsstrahlung.hpp"
+#   if !defined(SPEC)
+#   if( PMACC_CUDA_ENABLED == 1 )
+#       include "picongpu/particles/bremsstrahlung/Bremsstrahlung.hpp"
+#   endif
+#   include "picongpu/particles/traits/GetPhotonCreator.hpp"
+#   include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
 #endif
-#include "picongpu/particles/traits/GetPhotonCreator.hpp"
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
 #include "picongpu/particles/creation/creation.hpp"
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/ResolveAliasFromSpecies.hpp>
@@ -442,8 +444,8 @@ struct CallIonization
     }
 
 };
-
-#if( PMACC_CUDA_ENABLED == 1 )
+#if !defined(SPEC)
+#   if( PMACC_CUDA_ENABLED == 1 )
 
 /** Handles the bremsstrahlung effect for electrons on ions.
  *
@@ -517,7 +519,7 @@ struct CallBremsstrahlung
     }
 
 };
-#endif
+#   endif
 
 /** Handles the synchrotron radiation emission of photons from electrons
  *
@@ -571,6 +573,8 @@ struct CallSynchrotronPhotons
     }
 
 };
+
+#endif
 
 } // namespace particles
 } // namespace picongpu

@@ -11,7 +11,7 @@
         #define CUPLA_STREAM_ASYNC_ENABLED 0
         #define ALPAKA_ACC_CPU_B_OMP2_T_SEQ_ENABLED
         // #define ALPAKA_ACC_CPU_B_SEQ_T_OMP2_ENABLED
-    #elif defined SPEC_OPENMPTARGET
+    #elif defined SPEC_OPENMP_TARGET
         #define CUPLA_STREAM_ASYNC_ENABLED 0
         #define ALPAKA_ACC_CPU_BT_OMP4_ENABLED
     #elif defined SPEC_CPP11THREADS

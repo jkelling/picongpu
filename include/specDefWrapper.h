@@ -1,32 +1,31 @@
 #pragma once
 
 // this test is to not break pic-build or cmake builds
-#ifndef CMAKE_VERSION
+#ifdef SPEC
     #define CMAKE_VERSION = NO_CMAKE_IN_SPEC
     #ifdef SPEC_CUDA
         #define CUPLA_STREAM_ASYNC_ENABLED 1
-        #define ALPAKA_ACC_GPU_CUDA_ENABLED 1
         #define ALPAKA_ACC_GPU_CUDA_ONLY_MODE
+        #include <cupla/config/GpuCudaRt.hpp>
     #elif defined SPEC_HIP
         #define CUPLA_STREAM_ASYNC_ENABLED 1
-        #define ALPAKA_ACC_GPU_HIP_ENABLED 1
         #define ALPAKA_ACC_GPU_HIP_ONLY_MODE
+        #include <cupla/config/GpuHipRt.hpp>
     #elif defined SPEC_OPENMP
         #define CUPLA_STREAM_ASYNC_ENABLED 0
-        #define ALPAKA_ACC_CPU_B_OMP2_T_SEQ_ENABLED 1
-        // #define ALPAKA_ACC_CPU_B_SEQ_T_OMP2_ENABLED
+        #include <cupla/config/CpuOmp2Blocks.hpp>
     #elif defined SPEC_OPENMP_TARGET
         #define CUPLA_STREAM_ASYNC_ENABLED 0
-        #define ALPAKA_ACC_ANY_BT_OMP5_ENABLED 1
+        #include <cupla/config/AnyOmp5.hpp>
     #elif defined SPEC_CPP11THREADS
         #define CUPLA_STREAM_ASYNC_ENABLED 0
-        #define ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED 1
+        #include <cupla/config/CpuThreads.hpp>
     #elif defined SPEC_OPENACC
         #define CUPLA_STREAM_ASYNC_ENABLED 0
-        #define ALPAKA_ACC_ANY_BT_OACC_ENABLED 1
+        #include <cupla/config/AnyOacc.hpp>
     #else
         #define CUPLA_STREAM_ASYNC_ENABLED 0
-        #define ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED 1
+        #include <cupla/config/CpuSerial.hpp>
     #endif
 
     #ifdef SPEC_ALPAKA_OFFLOAD_MAX_BLOCK_SIZE

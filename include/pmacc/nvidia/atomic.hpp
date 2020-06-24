@@ -157,8 +157,12 @@ template<typename T>
 HDINLINE
 T atomicAllInc(T *ptr)
 {
-#ifdef __CUDA_ARCH__
+#ifdef ALPAKA_ACC_GPU_CUDA_ENABLED || ALPAKA_ACC_GPU_HIP_ENABLED
     return atomicAllInc(alpaka::atomic::AtomicUniformCudaHipBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
+#elif defined ALPAKA_ACC_ANY_BT_OMP5_ENABLED
+    return atomicAllInc(alpaka::atomic::AtomicOmpBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
+#elif defined ALPAKA_ACC_ANY_BT_OACC_ENABLED
+    return atomicAllInc(alpaka::atomic::AtomicOaccBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
 #else
     // assume that we can use the standard library atomics if we are not on gpu
     return atomicAllInc(alpaka::atomic::AtomicStdLibLock<16>(), ptr, ::alpaka::hierarchy::Grids());

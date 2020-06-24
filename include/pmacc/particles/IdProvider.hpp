@@ -35,6 +35,12 @@ namespace pmacc
      namespace idDetail {
 
         DEVICEONLY uint64_cu nextId;
+#ifdef ALPAKA_ACC_ANY_BT_OACC_ENABLED
+#pragma acc declare device_resident ( nextId )
+#endif
+#ifdef ALPAKA_ACC_ANY_BT_OMP5_ENABLED
+#pragma omp declare target ( nextId )
+#endif
 
         struct KernelSetNextId
         {

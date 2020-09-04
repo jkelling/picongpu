@@ -433,6 +433,7 @@ public:
         createSpeciesMemory( deviceHeap, cellDescription );
 
         size_t freeGpuMem(0);
+#if( PMACC_CUDA_ENABLED == 1 )
         Environment<>::get().MemoryInfo().getMemoryInfo(&freeGpuMem);
         if(freeGpuMem < reservedGpuMemorySize)
         {
@@ -467,6 +468,7 @@ public:
         auto mallocMCBuffer = std::make_unique< MallocMCBuffer< DeviceHeap > >( deviceHeap );
         dc.consume( std::move( mallocMCBuffer ) );
 #   endif
+#endif
 #endif
 
         meta::ForEach< VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1> > logMemoryStatisticsForSpecies;
@@ -572,11 +574,8 @@ public:
     {
         using namespace simulation::stage;
         MomentumBackup{ }( currentStep );
-<<<<<<< HEAD
         CurrentReset{ }( currentStep );
-=======
 #if !defined(SPEC)
->>>>>>> disable more plugins when SPEC is used
         ParticleIonization{ *cellDescription }( currentStep );
         PopulationKinetics{ }( currentStep );
         SynchrotronRadiation{

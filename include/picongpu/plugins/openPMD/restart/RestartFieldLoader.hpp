@@ -226,7 +226,7 @@ namespace openPMD
         HDINLINE void
         operator()( ThreadParams * params )
         {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             DataConnector & dc = Environment<>::get().DataConnector();
             ThreadParams * tp = params;
 

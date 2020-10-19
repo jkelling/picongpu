@@ -86,7 +86,7 @@ namespace detail
     template<>
     HDINLINE void notifyEventSystem<allocator::tag::device>()
     {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
         using namespace pmacc;
         __startOperation(ITask::TASK_DEVICE);
 #endif
@@ -95,7 +95,7 @@ namespace detail
     template<>
     HDINLINE void notifyEventSystem<allocator::tag::host>()
     {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
         using namespace pmacc;
         __startOperation(ITask::TASK_HOST);
 #endif
@@ -166,7 +166,7 @@ void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::init()
 {
     typename Allocator::Cursor cursor = Allocator::allocate(this->_size);
     this->dataPointer = cursor.getMarker();
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     this->refCount = new int;
     *this->refCount = 1;
 #endif
@@ -190,7 +190,7 @@ void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::exit()
         return;
     Allocator::deallocate(origin());
     this->dataPointer = nullptr;
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     delete this->refCount;
     this->refCount = 0;
 #endif
@@ -202,7 +202,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
 (const CartBuffer& rhs)
 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     if(rhs.size() != this->size())
         throw std::invalid_argument(static_cast<std::stringstream&>(
             std::stringstream() << "Assignment: Sizes of buffers do not match: "
@@ -222,7 +222,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
 (CartBuffer&& rhs)
 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     if(rhs.size() != this->size())
         throw std::invalid_argument(static_cast<std::stringstream&>(
             std::stringstream() << "Assignment: Sizes of buffers do not match: "

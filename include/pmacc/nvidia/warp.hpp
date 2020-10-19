@@ -36,7 +36,7 @@ namespace nvidia
  * id is in range [0,WAPRSIZE-1]
  * required PTX ISA >=1.3
  */
-#if (__CUDA_ARCH__ >= 130)
+#if defined(SPEC_CUDA) && (__CUDA_ARCH__ >= 130)
 DINLINE uint32_t getLaneId()
 {
     uint32_t id;
@@ -51,7 +51,7 @@ DINLINE uint32_t getLaneId()
 #endif
 
 
-#if (__CUDA_ARCH__ >= 300 || BOOST_COMP_HIP)
+#if defined(SPEC_CUDA) && (__CUDA_ARCH__ >= 300 || BOOST_COMP_HIP)
 /** broadcast data within a warp
  *
  * required PTX ISA >=3.0

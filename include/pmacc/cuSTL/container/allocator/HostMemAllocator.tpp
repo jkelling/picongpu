@@ -31,7 +31,7 @@ HDINLINE
 cursor::BufferCursor<Type, T_dim>
 HostMemAllocator<Type, T_dim>::allocate(const math::Size_t<T_dim>& size)
 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     Type* dataPointer = nullptr;
     math::Size_t<T_dim-1> pitch;
 
@@ -50,7 +50,7 @@ HostMemAllocator<Type, T_dim>::allocate(const math::Size_t<T_dim>& size)
     return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
 #endif
 
-#ifdef __CUDA_ARCH__
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
     Type* dataPointer = nullptr;
     math::Size_t<T_dim-1> pitch;
     return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
@@ -62,7 +62,7 @@ HDINLINE
 cursor::BufferCursor<Type, 1>
 HostMemAllocator<Type, 1>::allocate(const math::Size_t<1>& size)
 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     Type* dataPointer = nullptr;
     math::Size_t<0> pitch;
 
@@ -72,7 +72,7 @@ HostMemAllocator<Type, 1>::allocate(const math::Size_t<1>& size)
     return cursor::BufferCursor<Type, 1>(dataPointer, pitch);
 #endif
 
-#ifdef __CUDA_ARCH__
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
     Type* dataPointer = nullptr;
     math::Size_t<0> pitch;
     return cursor::BufferCursor<Type, 1>(dataPointer, pitch);
@@ -84,7 +84,7 @@ template<typename TCursor>
 HDINLINE
 void HostMemAllocator<Type, T_dim>::deallocate(const TCursor& cursor)
 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     CUDA_CHECK(cuplaFreeHost(cursor.getMarker()));
 #endif
 }
@@ -94,7 +94,7 @@ template<typename TCursor>
 HDINLINE
 void HostMemAllocator<Type, 1>::deallocate(const TCursor& cursor)
 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
     CUDA_CHECK(cuplaFreeHost(cursor.getMarker()));
 #endif
 }

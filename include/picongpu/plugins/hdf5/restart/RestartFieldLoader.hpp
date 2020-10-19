@@ -1,5 +1,4 @@
 /* Copyright 2014-2020 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
- *                     Benjamin Worpitz, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -20,37 +19,35 @@
 
 #pragma once
 
-#include <pmacc/types.hpp>
 #include "picongpu/simulation_defines.hpp"
-#include "picongpu/plugins/adios/ADIOSWriter.def"
+
+#include <pmacc/particles/frame_types.hpp>
+#include "picongpu/fields/FieldE.hpp"
+#include "picongpu/fields/FieldB.hpp"
 #include "picongpu/plugins/misc/ComponentNames.hpp"
+#include "picongpu/simulation/control/MovingWindow.hpp"
 #include "picongpu/traits/IsFieldDomainBound.hpp"
 
 #include <pmacc/communication/manager_common.hpp>
-#include <pmacc/particles/frame_types.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/dimensions/DataSpace.hpp>
 #include <pmacc/dimensions/GridLayout.hpp>
 #include <pmacc/Environment.hpp>
-#include "picongpu/simulation/control/MovingWindow.hpp"
 
-#include <adios.h>
-#include <adios_read.h>
-#include <adios_error.h>
+#include <splash/splash.h>
 
 #include <string>
 #include <sstream>
-#include <stdexcept>
 
 
 namespace picongpu
 {
 
-namespace adios
+namespace hdf5
 {
 
 /**
- * Helper class for ADIOS plugin to load fields from parallel ADIOS BP files.
+ * Helper class for HDF5Writer plugin to load fields from parallel libSplash files.
  */
 class RestartFieldLoader
 {
@@ -65,17 +62,34 @@ public:
     )
     {
         log<picLog::INPUT_OUTPUT > ("Begin loading field '%1%'") % objectName;
-
-        const auto componentNames = plugins::misc::getComponentNames( numComponents );
         const DataSpace<simDim> field_guard = field.getGridLayout().getGuard();
 
+        const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(params->currentStep);
         const pmacc::Selection<simDim>& localDomain = Environment<simDim>::get().SubGrid().getLocalDomain();
 
         using ValueType = typename Data::ValueType;
         field.getHostBuffer().setValue(ValueType::create(0.0));
 
-        DataSpace<simDim> domain_offset = localDomain.offset;
-        DataSpace<simDim> local_domain_size = params->window.localDimensions.size;
+        const auto componentNames = plugins::misc::getComponentNames( numComponents );
+
+        /* globalSlideOffset due to gpu slides between origin at time step 0
+         * and origin at current time step
+         * ATTENTION: splash offset are globalSlideOffset + picongpu offsets
+         */
+        DataSpace<simDim> globalSlideOffset;
+        globalSlideOffset.y() = numSlides * localDomain.size.y();
+
+        Dimensions domain_offset(0, 0, 0);
+        for (uint32_t d = 0; d < simDim; ++d)
+            domain_offset[d] = localDomain.offset[d] + globalSlideOffset[d];
+
+        if (Environment<simDim>::get().GridController().getPosition().y() == 0)
+            domain_offset[1] += params->window.globalDimensions.offset.y();
+
+        Dimensions local_domain_size;
+        for (uint32_t d = 0; d < simDim; ++d)
+            local_domain_size[d] = params->window.localDimensions.size[d];
+        int elementCount = params->window.localDimensions.size.productOfComponents();
         bool useLinearIdxAsDestination = false;
 
         /* Patch for non-domain-bound fields
@@ -85,12 +99,18 @@ public:
         {
             auto const field_layout = params->gridLayout;
             auto const field_no_guard = field_layout.getDataSpaceWithoutGuarding();
-            auto const elementCount = field_no_guard.productOfComponents();
+            elementCount = field_no_guard.productOfComponents();
+            // Number of elements on each local domain
+            local_domain_size = Dimensions(
+                elementCount,
+                1,
+                1
+            );
 
             /* Scan the PML buffer local size along all local domains
              * This code is symmetric to one in Field::writeField()
              */
-            log< picLog::INPUT_OUTPUT > ("ADIOS:  (begin) collect PML sizes for %1%") % objectName;
+            log< picLog::INPUT_OUTPUT > ("HDF5:  (begin) collect PML sizes for %1%") % objectName;
             auto & gridController = Environment<simDim>::get().GridController();
             auto const numRanks = uint64_t{ gridController.getGlobalSize() };
             /* Use domain position-based rank, not MPI rank, to be independent
@@ -114,74 +134,34 @@ public:
                 if( localSizes.at( 2u * r + 1u ) < rank )
                     domainOffset += localSizes.at( 2u * r );
             }
-            log< picLog::INPUT_OUTPUT > ("ADIOS:  (end) collect PML sizes for %1%") % objectName;
+            log< picLog::INPUT_OUTPUT > ("HDF5:  (end) collect PML sizes for %1%") % objectName;
 
-            domain_offset = DataSpace<simDim>::create( 0 );
-            domain_offset[ 0 ] = static_cast<int>( domainOffset );
-            local_domain_size = DataSpace<simDim>::create( 1 );
-            local_domain_size[ 0 ] = elementCount;
+            domain_offset = Dimensions(
+                domainOffset,
+                0,
+                0
+            );
             useLinearIdxAsDestination = true;
         }
 
+        // avoid deadlock between not finished pmacc tasks and mpi calls in splash/HDF5
+        __getTransactionEvent().waitForFinished();
+
         auto destBox = field.getHostBuffer().getDataBox();
-        for (uint32_t n = 0; n < numComponents; ++n)
+        for (uint32_t i = 0; i < numComponents; ++i)
         {
             // Read the subdomain which belongs to our mpi position.
             // The total grid size must match the grid size of the stored data.
-            log<picLog::INPUT_OUTPUT > ("ADIOS: Read from domain: offset=%1% size=%2%") %
-                domain_offset % local_domain_size;
+            log<picLog::INPUT_OUTPUT > ("Read from domain: offset=%1% size=%2%") %
+                domain_offset.toString() % local_domain_size.toString();
+            DomainCollector::DomDataClass data_class;
+            DataContainer *field_container =
+                params->dataCollector->readDomain(params->currentStep,
+                                           (std::string("fields/") + objectName +
+                                            std::string("/") + componentNames[i]).c_str(),
+                                           Domain(domain_offset, local_domain_size),
+                                           &data_class);
 
-            std::stringstream datasetName;
-            datasetName << params->adiosBasePath << ADIOS_PATH_FIELDS << objectName;
-            if (numComponents > 1)
-                datasetName << "/" << componentNames[n];
-
-            log<picLog::INPUT_OUTPUT > ("ADIOS: Read from field '%1%'") %
-                datasetName.str();
-
-            ADIOS_VARINFO* varInfo = adios_inq_var( params->fp, datasetName.str().c_str() );
-            if( varInfo == nullptr )
-            {
-                std::string errMsg( adios_errmsg() );
-                if( errMsg.empty() ) errMsg = '\n';
-                std::stringstream s;
-                s << "ADIOS: error at adios_inq_var '"
-                  << "' (" << adios_errno << ") in "
-                  << __FILE__ << ":" << __LINE__ << " " << errMsg;
-                throw std::runtime_error(s.str());
-            }
-            uint64_t start[varInfo->ndim];
-            uint64_t count[varInfo->ndim];
-            for(int d = 0; d < varInfo->ndim; ++d)
-            {
-                /* \see adios_define_var: z,y,x in C-order */
-                start[d] = domain_offset.revert()[d];
-                count[d] = local_domain_size.revert()[d];
-            }
-
-            ADIOS_SELECTION* fSel = adios_selection_boundingbox( varInfo->ndim, start, count );
-
-            /* specify what we want to read, but start reading at below at
-             * `adios_perform_reads` */
-            log<picLog::INPUT_OUTPUT > ("ADIOS: Allocate %1% elements") %
-                local_domain_size.productOfComponents();
-
-            /// \todo float_X should be some kind of gridBuffer's GetComponentsType<ValueType>::type
-            float_X* field_container = new float_X[local_domain_size.productOfComponents()];
-            /* magic parameters (0, 1): `from_step` (not used in streams), `nsteps` to read (must be 1 for stream) */
-            log<picLog::INPUT_OUTPUT > ("ADIOS: Schedule read from field (%1%, %2%, %3%, %4%)") %
-                                        params->fp % fSel % datasetName.str() % (void*)field_container;
-
-            // avoid deadlock between not finished pmacc tasks and mpi calls in adios
-            __getTransactionEvent().waitForFinished();
-            ADIOS_CMD(adios_schedule_read( params->fp, fSel, datasetName.str().c_str(), 0, 1, (void*)field_container ));
-
-            /* start a blocking read of all scheduled variables */
-            ADIOS_CMD(adios_perform_reads( params->fp, 1 ));
-
-            int const elementCount = local_domain_size.productOfComponents();
-
-            #pragma omp parallel for
             for (int linearId = 0; linearId < elementCount; ++linearId)
             {
                 DataSpace<simDim> destIdx;
@@ -196,27 +176,46 @@ public:
                     /* jump over guard and local sliding window offset*/
                     destIdx += field_guard + params->localWindowToDomainOffset;
                 }
-                destBox(destIdx)[n] = field_container[linearId];
+                destBox(destIdx)[i] = ((float_X*) (field_container->getIndex(0)->getData()))[linearId];
             }
 
-            __deleteArray(field_container);
-            adios_selection_delete(fSel);
-            adios_free_varinfo(varInfo);
+            delete field_container;
         }
 
         field.hostToDevice();
 
         __getTransactionEvent().waitForFinished();
 
-        log<picLog::INPUT_OUTPUT > ("ADIOS: Read from domain: offset=%1% size=%2%") %
-            domain_offset % local_domain_size;
-        log<picLog::INPUT_OUTPUT > ("ADIOS: Finished loading field '%1%'") % objectName;
+        log<picLog::INPUT_OUTPUT > ("Read from domain: offset=%1% size=%2%") %
+            domain_offset.toString() % local_domain_size.toString();
+        log<picLog::INPUT_OUTPUT > ("Finished loading field '%1%'") % objectName;
     }
 
+    template<class Data>
+    static void cloneField(Data& fieldDest, Data& fieldSrc, std::string objectName)
+    {
+        log<picLog::INPUT_OUTPUT > ("Begin cloning field '%1%'") % objectName;
+        DataSpace<simDim> field_grid = fieldDest.getGridLayout().getDataSpace();
+
+        size_t elements = field_grid.productOfComponents();
+        float3_X *ptrDest = fieldDest.getHostBuffer().getDataBox().getPointer();
+        float3_X *ptrSrc = fieldSrc.getHostBuffer().getDataBox().getPointer();
+
+        for (size_t k = 0; k < elements; ++k)
+        {
+            ptrDest[k] = ptrSrc[k];
+        }
+
+        fieldDest.hostToDevice();
+
+        __getTransactionEvent().waitForFinished();
+
+        log<picLog::INPUT_OUTPUT > ("Finished cloning field '%1%'") % objectName;
+    }
 };
 
 /**
- * Helper class for ADIOSWriter (forEach operator) to load a field from ADIOS
+ * Hepler class for HDF5Writer (forEach operator) to load a field from HDF5
  *
  * @tparam T_Field field class to load
  */
@@ -228,30 +227,32 @@ public:
     HDINLINE void operator()(ThreadParams* params)
     {
 #if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
+
         DataConnector &dc = Environment<>::get().DataConnector();
         ThreadParams *tp = params;
 
         /* load field without copying data to host */
-        auto field = dc.get< T_Field >( T_Field::getName(), true );
+        std::shared_ptr< T_Field > field = dc.get< T_Field >( T_Field::getName(), true );
         tp->gridLayout = field->getGridLayout();
 
-        /* load from ADIOS */
+        /* load from HDF5 */
         bool const isDomainBound = traits::IsFieldDomainBound< T_Field >::value;
         RestartFieldLoader::loadField(
             field->getGridBuffer(),
-            (uint32_t)T_Field::numComponents,
+            static_cast< uint32_t >( T_Field::numComponents ),
             T_Field::getName(),
             tp,
             isDomainBound
         );
 
-        dc.releaseData(T_Field::getName());
+        dc.releaseData( T_Field::getName() );
 #endif
     }
 
 };
 
 using namespace pmacc;
+using namespace splash;
 
-} /* namespace adios */
-} /* namespace picongpu */
+} //namespace hdf5
+} //namespace picongpu

@@ -93,7 +93,7 @@ public:
             this->pitch[0] = (pitch[0]) ? pitch[0] : size.x() * sizeof(Type);
         if(T_dim == 3)
             this->pitch[1] = (pitch[1]) ? pitch[1] : this->pitch[0] * size.y();
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
         this->refCount = new int;
         *this->refCount = (ownMemory) ? 1 : 2;
 #endif

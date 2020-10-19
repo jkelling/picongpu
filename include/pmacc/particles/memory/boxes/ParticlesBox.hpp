@@ -135,7 +135,7 @@ public:
     template<typename T_Acc>
     DINLINE void removeFrame( const T_Acc & acc, FramePtr& frame )
     {
-#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if defined(SPEC_CUDA) && ( BOOST_LANG_CUDA || BOOST_COMP_HIP)
         m_deviceHeapHandle.free( acc, (void*) frame.ptr );
 #else
         delete(frame.ptr);

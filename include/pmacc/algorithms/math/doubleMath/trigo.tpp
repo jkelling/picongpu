@@ -38,7 +38,7 @@ struct SinCos<double, double, double>
 
     HDINLINE void operator( )(double arg, double& sinValue, double& cosValue )
     {
-#if defined(_MSC_VER) && !defined(__CUDA_ARCH__)
+#if defined(_MSC_VER) && !defined(__CUDA_ARCH__) && !defined(SPEC_CUDA)
         sinValue = cupla::math::sin(arg);
         cosValue = cupla::math::cos(arg);
 #else

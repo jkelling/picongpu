@@ -426,7 +426,7 @@ private:
 
         HDINLINE void operator()(ThreadParams* params)
         {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             DataConnector &dc = Environment<simDim>::get().DataConnector();
 
             auto field = dc.get< T_Field >( T_Field::getName() );
@@ -729,7 +729,7 @@ private:
 
         HDINLINE void operator()(ThreadParams* params)
         {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             const uint32_t components = T::numComponents;
 
             auto localSize = params->window.localDimensions.size;

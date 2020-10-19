@@ -35,7 +35,7 @@
  * CUDA architecture version (aka PTX ISA level)
  * 0 for host compilation
  */
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
 #   define PMACC_CUDA_ARCH 0
 #else
 #   define PMACC_CUDA_ARCH __CUDA_ARCH__

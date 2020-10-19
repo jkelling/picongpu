@@ -46,12 +46,14 @@
 #include <string>
 #include <type_traits>
 
+#if defined(SPEC_CUDA) || defined(SPEC_HIP)
 /* HIP-clang is doing something wrong and uses the host path of the code when __HIP_DEVICE_COMPILE__
  * only is used to detect the device compile path.
  * Since we require devices with support for ballot we can high-jack __HIP_ARCH_HAS_WARP_BALLOT__.
  */
 #if(defined(__HIP_ARCH_HAS_WARP_BALLOT__) || defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1)
 #    define MALLOCMC_DEVICE_COMPILE 1
+#endif
 #endif
 
 namespace mallocMC
@@ -69,9 +71,9 @@ namespace mallocMC
         using type = unsigned long long;
     };
 
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
     constexpr auto warpSize = 32; // TODO
-#elif(MALLOCMC_DEVICE_COMPILE && BOOST_COMP_HIP)
+#elif defined(SPEC_HIP) && (MALLOCMC_DEVICE_COMPILE && BOOST_COMP_HIP)
     constexpr auto warpSize = 64;
 #else
     constexpr auto warpSize = 1;
@@ -81,11 +83,11 @@ namespace mallocMC
 
     ALPAKA_FN_ACC inline auto laneid()
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         std::uint32_t mylaneid;
         asm("mov.u32 %0, %%laneid;" : "=r"(mylaneid));
         return mylaneid;
-#elif defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__)
+#elif defined(SPEC_HIP) && defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__)
         return __lane_id();
 #else
         return 0u;
@@ -101,7 +103,7 @@ namespace mallocMC
      */
     ALPAKA_FN_ACC inline auto warpid()
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         std::uint32_t mywarpid;
         asm("mov.u32 %0, %%warpid;" : "=r"(mywarpid));
         return mywarpid;
@@ -116,7 +118,7 @@ namespace mallocMC
 
     ALPAKA_FN_ACC inline auto smid()
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         std::uint32_t mysmid;
         asm("mov.u32 %0, %%smid;" : "=r"(mysmid));
         return mysmid;
@@ -129,7 +131,7 @@ namespace mallocMC
 
     ALPAKA_FN_ACC inline auto lanemask_lt()
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         std::uint32_t lanemask;
         asm("mov.u32 %0, %%lanemask_lt;" : "=r"(lanemask));
         return lanemask;
@@ -142,7 +144,7 @@ namespace mallocMC
 
     ALPAKA_FN_ACC inline auto ballot(int pred)
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         return __ballot_sync(__activemask(), pred);
 #elif(MALLOCMC_DEVICE_COMPILE && BOOST_COMP_HIP)
         // return value is 64bit for HIP-clang
@@ -155,7 +157,7 @@ namespace mallocMC
 
     ALPAKA_FN_ACC inline auto activemask()
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         return __activemask();
 #elif(MALLOCMC_DEVICE_COMPILE && BOOST_COMP_HIP)
         // return value is 64bit for HIP-clang
@@ -196,7 +198,7 @@ namespace mallocMC
     template<typename T>
     ALPAKA_FN_ACC inline auto ffs(T mask) -> std::uint32_t
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         return ::__ffs(mask);
 #elif(MALLOCMC_DEVICE_COMPILE && BOOST_COMP_HIP)
         // return value is 64bit for HIP-clang
@@ -217,7 +219,7 @@ namespace mallocMC
     template<typename T>
     ALPAKA_FN_ACC inline auto popc(T mask) -> std::uint32_t
     {
-#if defined(__CUDA_ARCH__)
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
         return ::__popc(mask);
 #elif(MALLOCMC_DEVICE_COMPILE && BOOST_COMP_HIP)
         // return value is 64bit for HIP-clang

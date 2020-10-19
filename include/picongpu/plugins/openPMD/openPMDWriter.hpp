@@ -447,7 +447,7 @@ Please pick either of the following:
 
                 HDINLINE void operator()(ThreadParams* params)
                 {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
                     DataConnector& dc = Environment<simDim>::get().DataConnector();
 
                     // Skip optional fields

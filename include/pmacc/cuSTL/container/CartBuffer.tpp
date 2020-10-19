@@ -93,7 +93,7 @@ namespace pmacc
             template<>
             HDINLINE void notifyEventSystem<allocator::tag::device>()
             {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
                 using namespace pmacc;
                 __startOperation(ITask::TASK_DEVICE);
 #endif
@@ -102,7 +102,7 @@ namespace pmacc
             template<>
             HDINLINE void notifyEventSystem<allocator::tag::host>()
             {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
                 using namespace pmacc;
                 __startOperation(ITask::TASK_HOST);
 #endif
@@ -170,7 +170,7 @@ namespace pmacc
         {
             typename Allocator::Cursor cursor = Allocator::allocate(this->_size);
             this->dataPointer = cursor.getMarker();
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             this->refCount = new int;
             *this->refCount = 1;
 #endif
@@ -193,7 +193,7 @@ namespace pmacc
                 return;
             Allocator::deallocate(origin());
             this->dataPointer = nullptr;
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             delete this->refCount;
             this->refCount = 0;
 #endif
@@ -203,7 +203,7 @@ namespace pmacc
         HDINLINE CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&
         CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=(const CartBuffer& rhs)
         {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             if(rhs.size() != this->size())
                 throw std::invalid_argument(static_cast<std::stringstream&>(
                                                 std::stringstream()
@@ -224,7 +224,7 @@ namespace pmacc
         HDINLINE CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&
         CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=(CartBuffer&& rhs)
         {
-#ifndef __CUDA_ARCH__
+#if !defined(SPEC_CUDA) || !defined(__CUDA_ARCH__)
             if(rhs.size() != this->size())
                 throw std::invalid_argument(static_cast<std::stringstream&>(
                                                 std::stringstream()

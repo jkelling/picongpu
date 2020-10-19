@@ -22,7 +22,7 @@
 
 #pragma once
 
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if defined(SPEC_CUDA) && ( BOOST_LANG_CUDA || BOOST_COMP_HIP)
 #    include <mallocMC/mallocMC.hpp>
 #endif
 #include "pmacc/dimensions/DataSpace.hpp"
@@ -95,7 +95,7 @@ namespace pmacc
             const int maxTries = 13; // magic number is not performance critical
             for(int numTries = 0; numTries < maxTries; ++numTries)
             {
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if defined(SPEC_CUDA) && ( BOOST_LANG_CUDA || BOOST_COMP_HIP)
                 tmp = (FrameType*) m_deviceHeapHandle.malloc(acc, sizeof(FrameType));
 #else
                 tmp = new FrameType;
@@ -105,7 +105,7 @@ namespace pmacc
                     /* disable all particles since we can not assume that newly allocated memory contains zeros */
                     for(int i = 0; i < (int) math::CT::volume<typename FrameType::SuperCellSize>::type::value; ++i)
                         (*tmp)[i][multiMask_] = 0;
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if defined(SPEC_CUDA) && ( BOOST_LANG_CUDA || BOOST_COMP_HIP)
                     /* takes care that changed values are visible to all threads inside this block*/
                     __threadfence_block();
 #endif
@@ -134,7 +134,7 @@ namespace pmacc
         template<typename T_Acc>
         DINLINE void removeFrame(const T_Acc& acc, FramePtr& frame)
         {
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if defined(SPEC_CUDA) && ( BOOST_LANG_CUDA || BOOST_COMP_HIP)
             m_deviceHeapHandle.free(acc, (void*) frame.ptr);
 #else
             delete(frame.ptr);

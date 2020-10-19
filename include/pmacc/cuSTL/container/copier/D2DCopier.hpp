@@ -46,7 +46,7 @@ namespace pmacc
                     const math::Size_t<dim - 1>& pitchSource,
                     const math::Size_t<dim>& size)
             {
-#ifdef __CUDA_ARCH__
+#if defined(SPEC_CUDA) && defined(__CUDA_ARCH__)
                 typedef cursor::BufferCursor<Type, dim> Cursor;
                 Cursor bufCursorDest(dest, pitchDest);
                 Cursor bufCursorSrc(source, pitchSource);

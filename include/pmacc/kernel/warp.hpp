@@ -21,7 +21,7 @@
 
 #pragma once
 
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if(BOOST_LANG_CUDA && defined(SPEC_CUDA)) || (BOOST_COMP_HIP && defined(SPEC_HIP))
 
 #    include "pmacc/types.hpp"
 

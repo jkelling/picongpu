@@ -34,4 +34,12 @@
     #ifdef SPEC_ALPAKA_BLOCK_SHARED_DYN_MEMBER_ALLOC_KIB
         #define ALPAKA_BLOCK_SHARED_DYN_MEMBER_ALLOC_KIB SPEC_ALPAKA_BLOCK_SHARED_DYN_MEMBER_ALLOC_KIB
     #endif
+
+    #include <alpaka/core/BoostPredef.hpp>
+    #if (BOOST_LANG_CUDA || BOOST_COMP_CUDA) && ! defined SPEC_CUDA
+        #error "CUDA compiler must only be used with -DSPEC_CUDA ."
+    #endif
+    #if (BOOST_LANG_HIP || BOOST_COMP_HIP) && ! defined SPEC_HIP
+        #error "HIP compiler must only be used with -DSPEC_HIP ."
+    #endif
 #endif

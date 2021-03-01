@@ -99,7 +99,9 @@
 #include <pmacc/meta/conversion/SeqToMap.hpp>
 #include <pmacc/meta/conversion/TypeToPointerPair.hpp>
 #include <pmacc/particles/IdProvider.hpp>
-#include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
+#if(1)
+#   include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
+#endif
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/FilterByIdentifier.hpp>
 
@@ -384,7 +386,7 @@ namespace picongpu
             }
 #endif
 
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if(1)
             auto nativeCudaStream = cupla::manager::Stream<cupla::AccDev, cupla::AccStream>::get().stream(0);
             /* Create an empty allocator. This one is resized after all exchanges
              * for particles are created */
@@ -421,8 +423,8 @@ namespace picongpu
                     << (freeGpuMem / 1024 / 1024) << " MiB free device memory left";
                 throw std::runtime_error(msg.str());
             }
-
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+            freeGpuMem = 20llu * 1024llu * 1024llu * 1024llu;
+#if(1)
             size_t heapSize = freeGpuMem - reservedGpuMemorySize;
             // each MPI rank on the GPU gets the same amount of memory from a GPU
             heapSize /= numRanksPerDevice;

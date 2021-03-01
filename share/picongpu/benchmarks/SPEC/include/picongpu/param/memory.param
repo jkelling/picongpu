@@ -40,6 +40,12 @@ namespace picongpu
      */
     constexpr size_t reservedGpuMemorySize = 400 * 1024 * 1024;
 
+	/* Default mallocMC heapSize per local domain point in bytes. Used in case
+	 * free device memory cannot be determined by alpaka. Finale size will be
+	 * rounded up to a multiple of mallocMC pages.
+     */
+    constexpr size_t defaultHeapSizePoint = 768;
+
     /* short namespace*/
     namespace mCT = pmacc::math::CT;
     /** size of a superCell

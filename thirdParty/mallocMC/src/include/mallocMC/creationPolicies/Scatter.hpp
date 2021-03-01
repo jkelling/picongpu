@@ -1217,8 +1217,9 @@ namespace mallocMC
 
                 using VecType = alpaka::Vec<Dim, Idx>;
 
+                const auto accDevProps = alpaka::getAccDevProps<AlpakaAcc>(dev);
                 auto numBlocks = VecType::ones();
-                numBlocks[Dim::value - 1] = 64u;
+                numBlocks[Dim::value - 1] = std::max(accDevProps.m_gridBlockCountMax, 64u);
                 auto threadsPerBlock = VecType::ones();
 
                 auto const devProps = alpaka::getAccDevProps<AlpakaAcc>(dev);

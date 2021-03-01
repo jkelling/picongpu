@@ -26,7 +26,7 @@
 #include <cstdint>
 #include <string>
 
-#if(PMACC_CUDA_ENABLED == 1 || ALPAKA_ACC_GPU_HIP_ENABLED == 1)
+#ifdef PIC_USE_MALLOCMC
 
 #    include <memory>
 

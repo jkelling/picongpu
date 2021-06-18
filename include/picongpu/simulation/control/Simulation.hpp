@@ -99,7 +99,7 @@
 #include <pmacc/meta/conversion/SeqToMap.hpp>
 #include <pmacc/meta/conversion/TypeToPointerPair.hpp>
 #include <pmacc/particles/IdProvider.hpp>
-#if(1)
+#ifdef PIC_USE_MALLOCMC
 #   include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #endif
 #include <pmacc/particles/traits/FilterByFlag.hpp>
@@ -179,7 +179,9 @@ namespace picongpu
                 ("autoAdjustGrid", po::value<bool>(&autoAdjustGrid)->default_value(true),
                  "auto adjust the grid size if PIConGPU conditions are not fulfilled")
                 ("numRanksPerDevice,r", po::value<uint32_t>(&numRanksPerDevice)->default_value(1u),
-                 "set the number of MPI ranks using a single device together");
+                 "set the number of MPI ranks using a single device together")
+                ("heapBytesPerPoint", po::value<uint64_t>(&mallocMCHeapBytesPerPoint)->default_value(defaultHeapSizePoint),
+                 "size of mallocMC heap per grid point in bytes");
             // clang-format on
         }
 
@@ -386,7 +388,7 @@ namespace picongpu
             }
 #endif
 
-#if(1)
+#ifdef PIC_USE_MALLOCMC
             auto nativeCudaStream = cupla::manager::Stream<cupla::AccDev, cupla::AccStream>::get().stream(0);
             /* Create an empty allocator. This one is resized after all exchanges
              * for particles are created */
@@ -412,7 +414,13 @@ namespace picongpu
             meta::ForEach<VectorAllSpecies, particles::CreateSpecies<bmpl::_1>> createSpeciesMemory;
             createSpeciesMemory(deviceHeap, cellDescription);
 
-#if(PMACC_CUDA_ENABLED == 1)
+#ifdef PIC_USE_MALLOCMC
+            size_t heapSize = static_cast<pmacc::math::Size_t<simDim>>(gridSizeLocal).productOfComponents()
+                * mallocMCHeapBytesPerPoint;
+            // * Need a minimum of 9-ish pages to avoid floating point exception (dev-by-0?) for small grids.
+            heapSize = std::max(static_cast<size_t>(heapSize / DeviceHeapConfig::pagesize), static_cast<size_t>(9u)) * DeviceHeapConfig::pagesize;
+
+#if(PMACC_CUDA_ENABLED == 1 || ALPAKA_ACC_GPU_HIP_ENABLED == 1)
             size_t freeGpuMem = freeDeviceMemory();
             if(freeGpuMem < reservedGpuMemorySize)
             {
@@ -423,11 +431,11 @@ namespace picongpu
                     << (freeGpuMem / 1024 / 1024) << " MiB free device memory left";
                 throw std::runtime_error(msg.str());
             }
-            freeGpuMem = 20llu * 1024llu * 1024llu * 1024llu;
-#if(1)
-            size_t heapSize = freeGpuMem - reservedGpuMemorySize;
+
+            heapSize = freeGpuMem - reservedGpuMemorySize;
             // each MPI rank on the GPU gets the same amount of memory from a GPU
             heapSize /= numRanksPerDevice;
+
             GridController<simDim>& gc = Environment<simDim>::get().GridController();
             if(Environment<>::get().MemoryInfo().isSharedMemoryPool(
                    numRanksPerDevice,
@@ -439,6 +447,15 @@ namespace picongpu
             }
             else
                 log<picLog::MEMORY>("Device RAM is NOT shared between GPU and host.");
+#endif
+
+            std::cerr << "heapSize= " << heapSize << " localDomain= " << gridSizeLocal << " *"
+                << static_cast<pmacc::math::Size_t<simDim>>(gridSizeLocal).productOfComponents() << "*"
+                << " Pagesize= " << DeviceHeapConfig::pagesize << " / " << heapSize/static_cast<double>(DeviceHeapConfig::pagesize)
+                << std::endl;
+
+            if(heapSize == 0u)
+                throw std::runtime_error("MallocMC heap size must not be zero.");
 
             // initializing the heap for particles
             deviceHeap->destructiveResize(
@@ -449,8 +466,6 @@ namespace picongpu
 
             auto mallocMCBuffer = std::make_unique<MallocMCBuffer<DeviceHeap>>(deviceHeap);
             dc.consume(std::move(mallocMCBuffer));
-
-#endif
 #endif
 
             meta::ForEach<VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1>>
@@ -684,6 +699,7 @@ namespace picongpu
         bool showVersionOnce;
         bool autoAdjustGrid = true;
         uint32_t numRanksPerDevice = 1u;
+        uint64_t mallocMCHeapBytesPerPoint = defaultHeapSizePoint;
 
     private:
         /** Get available memory on device

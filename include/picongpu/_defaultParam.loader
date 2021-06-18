@@ -29,7 +29,7 @@
 
 #include "picongpu/param/dimension.param"
 #include "picongpu/param/precision.param"
-#if(1)
+#ifdef PIC_USE_MALLOCMC
 #    include "picongpu/param/mallocMC.param"
 #endif
 #include "picongpu/param/memory.param"

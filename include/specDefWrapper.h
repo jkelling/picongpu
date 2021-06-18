@@ -52,4 +52,8 @@
     #if (BOOST_LANG_HIP || BOOST_COMP_HIP) && ! defined SPEC_HIP
         #error "HIP compiler must only be used with -DSPEC_HIP ."
     #endif
+
+    #ifndef SPEC_NO_PIC_USE_MALLOCMC
+        #define PIC_USE_MALLOCMC
+    #endif
 #endif

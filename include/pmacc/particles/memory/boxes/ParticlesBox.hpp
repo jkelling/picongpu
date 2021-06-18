@@ -22,7 +22,7 @@
 
 #pragma once
 
-#if(1)
+#ifdef PIC_USE_MALLOCMC
 #    include <mallocMC/mallocMC.hpp>
 #endif
 #include "pmacc/dimensions/DataSpace.hpp"
@@ -95,7 +95,7 @@ namespace pmacc
             const int maxTries = 13; // magic number is not performance critical
             for(int numTries = 0; numTries < maxTries; ++numTries)
             {
-#if(1)
+#ifdef PIC_USE_MALLOCMC
                 tmp = (FrameType*) m_deviceHeapHandle.malloc(acc, sizeof(FrameType));
 #else
                 tmp = new FrameType;
@@ -134,7 +134,7 @@ namespace pmacc
         template<typename T_Acc>
         DINLINE void removeFrame(const T_Acc& acc, FramePtr& frame)
         {
-#if(1)
+#ifdef PIC_USE_MALLOCMC
             m_deviceHeapHandle.free(acc, (void*) frame.ptr);
 #else
             delete(frame.ptr);

@@ -955,7 +955,7 @@ namespace mallocMC
                 using VecType = alpaka::Vec<Dim, Idx>;
 
                 auto threadsPerBlock = VecType::ones();
-                threadsPerBlock[Dim::value - 1] = 1u;
+                threadsPerBlock[Dim::value - 1] = alpaka::getAccDevProps<AlpakaAcc>(dev).m_blockThreadCountMax;
 
                 const auto workDiv = alpaka::WorkDivMembers<Dim, Idx>{
                     VecType::ones(),
@@ -1131,10 +1131,11 @@ namespace mallocMC
 
                 using VecType = alpaka::Vec<Dim, Idx>;
 
+                const auto accDevProps = alpaka::getAccDevProps<AlpakaAcc>(dev);
                 auto numBlocks = VecType::ones();
-                numBlocks[Dim::value - 1] = 64u;
+                numBlocks[Dim::value - 1] = std::max(accDevProps.m_gridBlockCountMax, 64u);
                 auto threadsPerBlock = VecType::ones();
-                threadsPerBlock[Dim::value - 1] = 1u;
+                threadsPerBlock[Dim::value - 1] = accDevProps.m_blockThreadCountMax;
 
                 const auto workDiv = alpaka::WorkDivMembers<Dim, Idx>{
                     numBlocks,
